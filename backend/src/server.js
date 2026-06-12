@@ -1,7 +1,6 @@
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
-import serverless from "serverless-http";
 import {
   connectDB,
   isDatabaseConnected,
@@ -110,5 +109,4 @@ if (process.argv[1]?.endsWith("server.js")) {
   startServer();
 }
 
-export const handler = serverless(app);
 export default app;
