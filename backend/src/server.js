@@ -2,7 +2,12 @@ import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import serverless from "serverless-http";
-import { connectDB, isDatabaseConnected } from "./config/db.js";
+import {
+  connectDB,
+  isDatabaseConnected,
+  isDatabaseConnecting,
+  warmDBConnection,
+} from "./config/db.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import carRoutes from "./routes/carRoutes.js";
@@ -50,7 +55,12 @@ app.use(express.json({ limit: "1mb" }));
 
 const statusPayload = () => ({
   status: "ok",
-  database: isDatabaseConnected() ? "mongodb" : "memory",
+  database: isDatabaseConnected()
+    ? "mongodb"
+    : isDatabaseConnecting()
+      ? "connecting"
+      : "memory",
+  mongodbConfigured: Boolean(process.env.MONGODB_URI),
   message: "Car research platform API is running",
 });
 
@@ -71,10 +81,8 @@ app.get(["/", "/api", "/api/index", "/api/index.js"], (_req, res) => {
   });
 });
 
-app.use(async (_req, _res, next) => {
-  if (process.env.MONGODB_URI && !isDatabaseConnected()) {
-    await connectDB();
-  }
+app.use((_req, _res, next) => {
+  warmDBConnection();
   next();
 });
 
