@@ -30,6 +30,7 @@ export const connectDB = async () => {
   connectionPromise = mongoose
     .connect(uri, {
       dbName: process.env.MONGODB_DB_NAME || undefined,
+      serverSelectionTimeoutMS: Number(process.env.MONGODB_TIMEOUT_MS) || 8000,
     })
     .then((connection) => {
       databaseReady = true;

@@ -107,15 +107,18 @@ Backend:
 
 - `MONGODB_URI`: MongoDB Atlas connection string
 - `MONGODB_DB_NAME`: database name
+- `MONGODB_TIMEOUT_MS`: MongoDB server selection timeout, default `8000`
 - `JWT_SECRET`: long random secret for JWT signing
 - `JWT_EXPIRES_IN`: token lifetime, for example `7d`
-- `CORS_ORIGIN`: allowed frontend URL
+- `CORS_ORIGIN`: comma-separated allowed frontend URLs
+- `FRONTEND_URL`: primary deployed frontend URL
+- `ALLOW_VERCEL_PREVIEWS`: set to `true` only when preview deployments should be allowed by CORS
 - `SEED_ADMIN_EMAIL`: local demo admin email when no MongoDB URI is configured
 - `SEED_ADMIN_PASSWORD`: local demo admin password when no MongoDB URI is configured
 
 Frontend:
 
-- `VITE_API_BASE_URL`: API base URL, usually `http://localhost:5000/api` locally and `/api` on Vercel
+- `VITE_API_BASE_URL`: API base URL, usually `http://localhost:5000/api` locally and `https://your-backend.vercel.app/api` when frontend/backend are deployed separately
 
 When `MONGODB_URI` is not set, the backend serves in-memory demo car data so the UI can be tested locally.
 
@@ -160,21 +163,29 @@ Each recommendation returns a match percentage and concise reasons explaining wh
 
 ## Vercel Deployment
 
-1. Push the repository to GitHub.
-2. Import the repository in Vercel.
-3. Use the project root as the Vercel root directory.
-4. Add backend environment variables in Vercel:
+For separate frontend and backend deployments, create two Vercel projects from the same repository.
+
+Backend project:
+
+1. Set the Vercel root directory to `backend`.
+2. Add backend environment variables in Vercel:
    - `MONGODB_URI`
    - `MONGODB_DB_NAME`
+   - `MONGODB_TIMEOUT_MS=8000`
    - `JWT_SECRET`
    - `JWT_EXPIRES_IN`
-   - `CORS_ORIGIN`
-   - `FRONTEND_URL`
-5. Add frontend environment variable:
-   - `VITE_API_BASE_URL=/api`
-6. Deploy.
+   - `CORS_ORIGIN=https://your-frontend.vercel.app`
+   - `FRONTEND_URL=https://your-frontend.vercel.app`
+3. Deploy.
+4. Verify `https://your-backend.vercel.app/api/health`.
 
-The included `vercel.json` builds `frontend/` as a static Vite app and routes `/api/*` traffic to the Express serverless function at `backend/api/index.js`.
+Frontend project:
+
+1. Set the Vercel root directory to `frontend`.
+2. Add `VITE_API_BASE_URL=https://your-backend.vercel.app/api`.
+3. Deploy.
+
+The backend `vercel.json` routes `/`, `/health`, `/api`, and `/api/*` to the Express serverless function at `backend/api/index.js`. The frontend `vercel.json` rewrites all app routes to `index.html` for React Router.
 
 ## Admin Access
 

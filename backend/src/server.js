@@ -19,15 +19,26 @@ const PORT = process.env.PORT || 5000;
 
 const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || "http://localhost:5173")
   .split(",")
-  .map((origin) => origin.trim());
+  .map((origin) => origin.trim().replace(/\/$/, ""))
+  .filter(Boolean);
 
 app.use(
   cors({
     origin(origin, callback) {
       const isDevelopment = process.env.NODE_ENV === "development";
       const isLocalhost = origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+      const normalizedOrigin = origin?.replace(/\/$/, "");
+      const isAllowedPreview =
+        process.env.ALLOW_VERCEL_PREVIEWS === "true" &&
+        Boolean(normalizedOrigin?.endsWith(".vercel.app"));
 
-      if (!origin || allowedOrigins.includes(origin) || (isDevelopment && isLocalhost)) {
+      if (
+        !origin ||
+        allowedOrigins.includes("*") ||
+        allowedOrigins.includes(normalizedOrigin) ||
+        isAllowedPreview ||
+        (isDevelopment && isLocalhost)
+      ) {
         return callback(null, true);
       }
       return callback(new Error("Not allowed by CORS"));
@@ -37,27 +48,34 @@ app.use(
 );
 app.use(express.json({ limit: "1mb" }));
 
+const statusPayload = () => ({
+  status: "ok",
+  database: isDatabaseConnected() ? "mongodb" : "memory",
+  message: "Car research platform API is running",
+});
+
+app.get(["/health", "/api/health"], (_req, res) => {
+  res.json(statusPayload());
+});
+
+app.get(["/", "/api", "/api/index", "/api/index.js"], (_req, res) => {
+  res.json({
+    ...statusPayload(),
+    service: "CarWise Backend API",
+    endpoints: {
+      health: "/api/health",
+      cars: "/api/cars",
+      recommendations: "/api/recommendations",
+      admin: "/api/admin",
+    },
+  });
+});
+
 app.use(async (_req, _res, next) => {
   if (process.env.MONGODB_URI && !isDatabaseConnected()) {
     await connectDB();
   }
   next();
-});
-
-app.get("/api/health", (_req, res) => {
-  res.json({
-    status: "ok",
-    database: isDatabaseConnected() ? "mongodb" : "memory",
-    message: "Car research platform API is running",
-  });
-});
-
-app.get("/", (_req, res) => {
-  res.json({
-    status: "running",
-    message: "CarWise Backend API is active. Endpoints are located under /api",
-    health: "/api/health",
-  });
 });
 
 app.use("/api/auth", authRoutes);
