@@ -52,6 +52,14 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+app.get("/", (_req, res) => {
+  res.json({
+    status: "running",
+    message: "CarWise Backend API is active. Endpoints are located under /api",
+    health: "/api/health",
+  });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/cars", carRoutes);
 app.use("/api/filters", filterRoutes);
